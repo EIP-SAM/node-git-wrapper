@@ -17,27 +17,39 @@ var Git = module.exports = function (options) {
 
 // git.exec(command [[, options], args ], callback)
 Git.prototype.exec = function (command, options, args, callback) {
-  callback = arguments[arguments.length - 1];
-
-  if (arguments.length == 2) {
-    options = {};
-    args = [];
-  } else if (arguments.length == 3) {
-    args = arguments[1];
-    options = [];
+  if (typeof options === 'undefined' || options == {}) {
+    options = '';
+  } else {
+    options = Git.optionsToString(options)
   }
 
-  args = args.join(' ');
-  options = Git.optionsToString(options)
+  if (typeof args === 'undefined' || args  == []) {
+    args = '';
+  } else {
+    args = args.join(' ');
+  }
+
+  if (typeof callback === 'undefined') {
+    callback = function (err, stdout) {};
+  }
 
   var cmd = this.binary + ' ' + this.args + ' ' + command + ' ' + options + ' '
     + args;
 
-  exec(cmd, {
-    cwd: this.cwd
-  }, function (err, stdout, stderr) {
-    callback(err, stdout);
-  });
+  var cwd = this.cwd;
+
+  return new Promise(function(fullfill, reject) {
+    exec(cmd, {
+      cwd: cwd
+    }, function (err, stdout, stderr) {
+      callback(err, stdout);
+      if (err) {
+        reject(err);
+      } else {
+        fullfill(stdout);
+      }
+    });
+  })
 };
 
 // converts an object that contains key value pairs to a argv string
